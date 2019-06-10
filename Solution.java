@@ -1,142 +1,140 @@
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
-
-import com.opencsv.CSVReader;
 import org.evosuite.ga.Chromosome;
-import org.evosuite.ga.ConstructionFailedException;
 import org.evosuite.ga.localsearch.LocalSearchObjective;
 
-
-public class Solution extends Chromosome{
+public class Solution extends Chromosome {
     private double crossover_rate;
     private int population;
     private int elitism;
     private String selection;
-    private String parent_replacement;
-    private int[] index;
-    static int count=0;
-    static String[] selection_set= {"ROULETTEWHEEL","TOURNAMENT","RANK", "BINARY_TOURNAMENT"};
-    static String [] replace = {"FITNESSREPLACEMENT","DEFAULT"};
-    static double [] cross = {0,0.2,0.5,0.8,1};
-    static int[] pop = {10,20,50,100,200};
-    static int[] elite= {0,1,10,50};
-    static int size[] = {cross.length,pop.length,elite.length,selection_set.length,replace.length};
+    private boolean parent_replacement;
+    public int[] index;
+    static String[] selection_set = new String[]{"ROULETTEWHEEL", "TOURNAMENT", "TOURNAMENT", "RANK", "RANK"};
+    static boolean[] parent_check = new boolean[]{true, false};
+    static double[] cross = new double[]{0.0D, 0.2D, 0.5D, 0.75D, 0.8D, 1.0D};
+    static int[] pop = new int[]{4, 10, 50, 100, 200};
+    static int[] elite = new int[]{0, 1, 10, 50};
+    static int[] size;
 
-
-
-
-
-
-    public Solution(int[] param){
-        index=param;
-        crossover_rate = cross[index[0]];
-        population=pop[index[1]];
-        if (index[2]==2){
-            elitism = (int)0.1*population;
-        }
-        else if (index[2]==3) {
-            elitism =(int)0.5*population;
-        }
-        else {
-            elitism=elite[index[2]];
-        }
-        selection=selection_set[index[3]];
-        parent_replacement=replace[index[4]];
-    }
-    public void runEvosuite() throws IOException, InterruptedException { //fitness
-        count++;
-        Runtime rt = Runtime.getRuntime();
-        String cmd = String.format("java -jar /home/ubuntu/evosuite-1.0.6.jar -target /home/ubuntu/SF100/1_tullibee/tullibee.jar" +
-                        " -Dcrossover_rate=%f" +
-                        " -Dpopulation=%d -Dselection_function=%s -Dshow_progress=False" +
-                        " -criterion branch -Dsearch_budget=120 -Delite=%d -Dreplacement_function=%s" +
-                        " -Doutput_variables=TARGET_CLASS,BranchCoverage,MutationScore" +
-                        " -Dreport_dir=/home/ubuntu/results/metaga/%d",
-                crossover_rate, population, selection, elitism,parent_replacement, count);
-        Process pr = rt.exec(cmd);
-        pr.waitFor();
+    public Solution(int[] param) {
+        this.index = param;
     }
 
-    public double getBranchCoverage(){
-        try {
-            String strFile = String.format("/home/ubuntu/results/metaga/%d/statistics.csv",count);
-            CSVReader reader = new CSVReader(new FileReader(strFile));
-            String[] nextLine;
-            int lineNumber = 0;
-            double b_coverage=0;
-            while ((nextLine = reader.readNext()) != null) {
-                lineNumber++;
-                if (lineNumber!=1){
-                    b_coverage = Double.parseDouble(nextLine[1]);
-                }
-                // nextLine[] is an array of values from the line
-            }
-            return b_coverage/lineNumber;
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return 0;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return 0;
-        }
-
-    }
-
-    @Override
     public Chromosome clone() {
-            return new Solution(this.index);
+        int[] copiedArray = Arrays.copyOf(this.index, this.index.length);
+        Solution s = new Solution(copiedArray);
+        return s;
     }
 
-    @Override
     public boolean equals(Object o) {
-        return false;
+        Solution oprime = (Solution)o;
+        return Arrays.equals(this.index, oprime.index);
     }
 
-    @Override
     public int hashCode() {
         return 0;
     }
 
-    @Override
     public <T extends Chromosome> int compareSecondaryObjective(T t) {
         return 0;
     }
 
-    @Override
     public void mutate() {
-        int random = new Random().nextInt(index.length); //which parameter to change
-        int random2 = new Random().nextInt(size[random]); //which is going to be assigned
-        index[random]=random2;
+        int random = (new Random()).nextInt(this.index.length);
+        int random2 = (new Random()).nextInt(size[random]);
+        this.index[random] = random2;
+        this.setChanged(true);
     }
 
-    @Override
-    public void crossOver(Chromosome chromosome, int i, int i1) throws ConstructionFailedException {
-        Solution s =(Solution)chromosome;
-        if (i1<i){
-            int x = i1;
-            i1= i;
-            i=i1;
-        }
-        if (i==i1){
-            i1=this.index.length;
+    public void crossOver(Chromosome chromosome, int i, int i1) {
+        Solution s = (Solution)chromosome;
+        int j;
+        if (i1 < i) {
+            j = i1;
+            i1 = i;
+            i = j;
         }
 
-        for (int j =i;j<i1;j++) {
+        if (i == i1) {
+            i1 = this.index.length;
+        }
+
+        for(j = i; j < i1; ++j) {
             int temp = this.index[j];
             this.index[j] = s.index[j];
-            s.index[j]=temp;
+            s.index[j] = temp;
         }
+
+        s.setChanged(true);
+        this.setChanged(true);
     }
 
-    @Override
     public boolean localSearch(LocalSearchObjective<? extends Chromosome> localSearchObjective) {
         return false;
     }
 
-    @Override
     public int size() {
         return 5;
+    }
+
+    public boolean isParent_replacement() {
+        this.parent_replacement = parent_check[this.index[4]];
+        return this.parent_replacement;
+    }
+
+    public double getCrossover_rate() {
+        this.crossover_rate = cross[this.index[0]];
+        return this.crossover_rate;
+    }
+
+    public int getPopulation() {
+        this.population = pop[this.index[1]];
+        return this.population;
+    }
+
+    public String getSelection() {
+        this.selection = selection_set[this.index[3]];
+        return this.selection;
+    }
+
+    public int getElitism() {
+        if (this.index[2] == 2) {
+            this.elitism = this.getPopulation() / 10;
+            if (this.getPopulation() == 4) {
+                this.elitism = 1;
+            }
+        } else if (this.index[2] == 3) {
+            this.elitism = this.getPopulation() / 2;
+        } else {
+            this.elitism = elite[this.index[2]];
+        }
+
+        return this.elitism;
+    }
+
+    public String toString() {
+        String s = "population: " + this.getPopulation() + " crossover rate: " + this.getCrossover_rate() + " elitism: " + this.getElitism() + " selection: " + this.getSelection() + " parent: " + this.isParent_replacement() + " fitness: " + this.getFitness();
+        if (this.index[3] == 1) {
+            s = s + " tournament size: 2";
+        }
+
+        if (this.index[3] == 2) {
+            s = s + " tournament size: 7";
+        }
+
+        if (this.index[3] == 3) {
+            s = s + " rank bias: 1.2";
+        }
+
+        if (this.index[3] == 4) {
+            s = s + " rank bias: 1.7";
+        }
+
+        return s;
+    }
+
+    static {
+        size = new int[]{cross.length, pop.length, elite.length, selection_set.length, parent_check.length};
     }
 }
