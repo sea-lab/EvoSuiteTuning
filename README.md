@@ -12,3 +12,5 @@ In other words, this can be used much more easier, and there is no need to imple
 
 
 The results of this work are summarized in the data.xlsx excel file. It has three sheets and each sheet coresponds to one of the Java projects that we studied, namely, JOpenChart, Geo-Google, and JSecurity--all from SF100 benchmark.
+
+In the next step, we are going to see if there is any correlation between the static features of a class with the type of fitness landscape that it has in the search space.
